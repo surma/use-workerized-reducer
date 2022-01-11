@@ -1,0 +1,18 @@
+{
+  "name": "use-workerized-reducer",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "Surma <surma@surma.dev>",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "immer": "^9.0.12",
+    "preact": "^10.6.4"
+  },
+  "dependencies": {
+    "vite": "^2.7.10"
+  }
+}
