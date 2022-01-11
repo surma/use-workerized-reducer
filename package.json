@@ -7,6 +7,7 @@
     "dev": "vite .",
     "prepare": "husky install"
   },
+  "module": "dist/use-workerized-reducer.es.js",
   "keywords": [],
   "author": "Surma <surma@surma.dev>",
   "license": "Apache-2.0",

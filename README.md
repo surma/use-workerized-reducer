@@ -50,6 +50,8 @@ function App() {
 }
 ```
 
+`userWorkerizedReducer` uses [ImmerJS]’s `produce()` and `applyPatches()` under the hood, so that `Object.is` can be used to debounce rendering (i.e. objects tha weren’t changed in the worker won’t be changed on the main thread). A reducer has to completely finish (that means the promise has to resolve in the case of an async reducer) before the next action is processed.
+
 ---
 
 Apache-2.0

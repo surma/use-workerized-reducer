@@ -11,6 +11,7 @@ function Counter() {
   const [state, dispatch, busy] = useWorkerizedReducer(
     w,
     "counter",
+		{ counter: 0 },
     useState,
     useEffect
   );
@@ -27,6 +28,7 @@ function Name() {
   const [state, dispatch, busy] = useWorkerizedReducer(
     w,
     "name",
+		{ name: "Test" },
     useState,
     useEffect
   );

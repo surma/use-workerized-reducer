@@ -24,7 +24,6 @@ export type UseRef<T> = (initialValue: T) => MutableRef<T>;
 export function initWorkerizedReducer<State, Action>(
   reducerName: string,
   reducer: Reducer<Draft<State>, Action>,
-  initialState: State
 ) {
   function send(id, value) {
     postMessage({
@@ -34,16 +33,22 @@ export function initWorkerizedReducer<State, Action>(
     });
   }
 
-  let state = produce<State | {}>(
-    {},
-    (obj) => Object.assign(obj, initialState),
-    (patches) => send("", patches)
-  ) as State;
-
+  let state: State | null = null; 
 	const ws = new WritableStream({
 		async write(data) {
 			const { name, id, action } = data;
 			if (name != reducerName) return;
+
+			// If state is null, the first message will be the initialState.
+			if(state === null) {
+				state = await produce<State>(
+					{} as any,
+					(obj) => Object.assign(obj, action),
+					(patches) => send(id, patches)
+				);
+				return;
+			}
+
 			state = await produce<State>(
 				state,
 				async (state) => {
@@ -68,19 +73,25 @@ function uid() {
 export function useWorkerizedReducer<State, Action>(
   worker: Worker,
   reducerName: string,
+	initialState: State,
   originalUseState: UseState<any>,
   originalUseEffect: UseEffect
 ): [State | null, DispatchFunc<Action>, boolean] {
 	const [activeSet] = originalUseState(new Set());
   const [state, setState] = originalUseState(null);
-  const [isBusy, setBusy] = originalUseState(false);
-  const [dispatch] = originalUseState({
-    f: (action: Action) => {
+	// Initially set to true until the initialState
+	// has been applied in the worker.
+  const [isBusy, setBusy] = originalUseState(true);
+
+	function send(action) {
 			const id = uid();
 			activeSet.add(id);
 			setBusy(true);
       worker.postMessage({ name: reducerName, id, action });
-    },
+	}
+
+  const [dispatch] = originalUseState({
+    f: (action: Action) => send(action)
   });
 
   originalUseEffect(() => {
@@ -94,6 +105,7 @@ export function useWorkerizedReducer<State, Action>(
       });
     }
     worker.addEventListener("message", listener);
+		send(initialState);
     () => worker.removeEventListener("message", listener);
   }, []);
 
