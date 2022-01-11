@@ -22,42 +22,55 @@ export interface MutableRef<T> {
 export type UseRef<T> = (initialValue: T) => MutableRef<T>;
 
 export function initWorkerizedReducer<State, Action>(
+  reducerName: string,
   reducer: Reducer<Draft<State>, Action>,
   initialState: State
 ) {
+  function send(value) {
+    postMessage({
+      name: reducerName,
+      value,
+    });
+  }
+
   let state = produce<State | {}>(
     {},
     (obj) => Object.assign(obj, initialState),
-    (patches) => postMessage(patches)
+    (patches) => send(patches)
   ) as State;
+
   addEventListener("message", ({ data }: MessageEvent) => {
+    const { name, action } = data;
+    if (name != reducerName) return;
     state = produce<State>(
       state,
       (state) => {
-        reducer(state, data);
+        reducer(state, action);
       },
-      (patches) => postMessage(patches)
+      (patches) => send(patches)
     );
   });
 }
 
 export function useWorkerizedReducer<State, Action>(
   worker: Worker,
+  reducerName: string,
   originalUseState: UseState<any>,
   originalUseEffect: UseEffect
 ): [State | null, DispatchFunc<Action>] {
   const [state, setState] = originalUseState(null);
   const [dispatch] = originalUseState({
-    f: (a: Action) => {
-      worker.postMessage(a);
+    f: (action: Action) => {
+      worker.postMessage({ name: reducerName, action });
     },
   });
 
   originalUseEffect(() => {
     function listener({ data }: MessageEvent) {
-      const patches = data as Patch[];
+      const { name, value } = data;
+      if (name != reducerName) return;
       setState((state) => {
-        return applyPatches(state ?? {}, patches);
+        return applyPatches(state ?? {}, value);
       });
     }
     worker.addEventListener("message", listener);
