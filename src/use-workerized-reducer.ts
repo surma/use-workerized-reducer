@@ -26,9 +26,10 @@ export function initWorkerizedReducer<State, Action>(
   reducer: Reducer<Draft<State>, Action>,
   initialState: State
 ) {
-  function send(value) {
+  function send(id, value) {
     postMessage({
       name: reducerName,
+			id,
       value,
     });
   }
@@ -36,20 +37,32 @@ export function initWorkerizedReducer<State, Action>(
   let state = produce<State | {}>(
     {},
     (obj) => Object.assign(obj, initialState),
-    (patches) => send(patches)
+    (patches) => send("", patches)
   ) as State;
 
-  addEventListener("message", ({ data }: MessageEvent) => {
-    const { name, action } = data;
-    if (name != reducerName) return;
-    state = produce<State>(
-      state,
-      (state) => {
-        reducer(state, action);
-      },
-      (patches) => send(patches)
-    );
-  });
+	const ws = new WritableStream({
+		async write(data) {
+			const { name, id, action } = data;
+			if (name != reducerName) return;
+			state = await produce<State>(
+				state,
+				async (state) => {
+					await reducer(state, action);
+				},
+				(patches) => send(id, patches)
+			);
+		}
+	});
+
+  addEventListener("message", async ({ data }: MessageEvent) => {
+		const w = ws.getWriter();
+		w.write(data);
+		w.releaseLock();
+	});
+}
+
+function uid() {
+	return Array.from({length: 16}, () => Math.floor(Math.random() * 256).toString(16)).join("");
 }
 
 export function useWorkerizedReducer<State, Action>(
@@ -57,18 +70,25 @@ export function useWorkerizedReducer<State, Action>(
   reducerName: string,
   originalUseState: UseState<any>,
   originalUseEffect: UseEffect
-): [State | null, DispatchFunc<Action>] {
+): [State | null, DispatchFunc<Action>, boolean] {
+	const [activeSet] = originalUseState(new Set());
   const [state, setState] = originalUseState(null);
+  const [isBusy, setBusy] = originalUseState(false);
   const [dispatch] = originalUseState({
     f: (action: Action) => {
-      worker.postMessage({ name: reducerName, action });
+			const id = uid();
+			activeSet.add(id);
+			setBusy(true);
+      worker.postMessage({ name: reducerName, id, action });
     },
   });
 
   originalUseEffect(() => {
     function listener({ data }: MessageEvent) {
-      const { name, value } = data;
+      const { name, id, value } = data;
       if (name != reducerName) return;
+			activeSet.delete(id);
+			if(activeSet.size === 0) setBusy(false);
       setState((state) => {
         return applyPatches(state ?? {}, value);
       });
@@ -77,5 +97,5 @@ export function useWorkerizedReducer<State, Action>(
     () => worker.removeEventListener("message", listener);
   }, []);
 
-  return [state, dispatch.f];
+  return [state, dispatch.f, isBusy];
 }

@@ -10,8 +10,13 @@ initWorkerizedReducer(
 
 initWorkerizedReducer(
   "name",
-  (state, { append }) => {
+  async (state, { append }) => {
+    await sleep(1000);
     state.name += append;
   },
   { name: "Test" }
 );
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

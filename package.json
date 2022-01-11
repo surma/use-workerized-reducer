@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "build": "vite build",
+    "dev": "vite .",
     "prepare": "husky install"
   },
   "keywords": [],
