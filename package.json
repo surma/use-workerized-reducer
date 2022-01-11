@@ -12,12 +12,12 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "husky": "^7.0.4",
-    "immer": "^9.0.12",
     "lint-staged": "^12.1.7",
     "preact": "^10.6.4",
     "prettier": "^2.5.1"
   },
   "dependencies": {
+    "immer": "^9.0.12",
     "vite": "^2.7.10"
   },
   "lint-staged": {
