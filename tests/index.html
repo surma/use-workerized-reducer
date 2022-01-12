@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<style>
+  main {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    grid-gap: 0 10px;
+  }
+</style>
+<main id="results"></main>
+<iframe id="iframe"></iframe>
+<script type="module">
+  const TESTS = [
+    "basic/index",
+    "instant-dispatch/index",
+    "remount/index",
+  ];
+
+  const { results, iframe } = document.all;
+  const messageStream = new ReadableStream({
+    start(controller) {
+      window.addEventListener("message", (ev) => controller.enqueue(ev.data));
+    },
+  });
+  async function run() {
+    const testResults = {};
+    for (const test of TESTS) {
+      iframe.src = `./${test}.html`;
+      const reader = messageStream.getReader();
+      const { value: message } = await reader.read();
+      testResults[test] = message;
+      reader.releaseLock();
+      results.innerHTML += `<span><a href="./${test}.html">${test}</a></span><span>${message}</span>`;
+    }
+    return testResults;
+  }
+  self.runFinished = run();
+</script>
