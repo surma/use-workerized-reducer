@@ -1,5 +1,6 @@
-import { produce, applyPatches, Patch, Draft, enablePatches } from "immer";
+import { produce, applyPatches, Patch, Draft, enablePatches, enableMapSet } from "immer";
 enablePatches();
+enableMapSet();
 
 export type Reducer<State, Action> = (
   prevState: State,
@@ -83,16 +84,12 @@ export function useWorkerizedReducer<State, Action>(
 	// has been applied in the worker.
   const [isBusy, setBusy] = originalUseState(true);
 
-	function send(action) {
+	function dispatch(action) {
 			const id = uid();
 			activeSet.add(id);
 			setBusy(true);
       worker.postMessage({ name: reducerName, id, action });
 	}
-
-  const [dispatch] = originalUseState({
-    f: (action: Action) => send(action)
-  });
 
   originalUseEffect(() => {
     function listener({ data }: MessageEvent) {
@@ -105,9 +102,9 @@ export function useWorkerizedReducer<State, Action>(
       });
     }
     worker.addEventListener("message", listener);
-		send(initialState);
+		dispatch(initialState);
     () => worker.removeEventListener("message", listener);
   }, []);
 
-  return [state, dispatch.f, isBusy];
+  return [state, dispatch, isBusy];
 }
