@@ -8,27 +8,27 @@ const w = new Worker(new URL("./worker.js", import.meta.url), {
 });
 
 function Counter() {
-  const [state, dispatch, busy] = useWorkerizedReducer(
-    w,
-    "counter",
-		{ counter: 0 }
-  );
+  const [state, dispatch, busy] = useWorkerizedReducer(w, "counter", {
+    counter: 0,
+  });
 
   return (
     <div>
-      <button disabled={busy} onclick={() => dispatch({ type: "decrement" })}>-</button>
+      <button disabled={busy} onclick={() => dispatch({ type: "decrement" })}>
+        -
+      </button>
       <span>{state?.counter}</span>
-      <button disabled={busy} onclick={() => dispatch({ type: "increment" })}>+</button>
+      <button disabled={busy} onclick={() => dispatch({ type: "increment" })}>
+        +
+      </button>
     </div>
   );
 }
 
 function Name() {
-  const [state, dispatch, busy] = useWorkerizedReducer(
-    w,
-    "name",
-		{ name: "Test" }
-  );
+  const [state, dispatch, busy] = useWorkerizedReducer(w, "name", {
+    name: "Test",
+  });
   const ref = useRef(null);
 
   return (
@@ -36,7 +36,10 @@ function Name() {
       <span>{state?.name}</span>
       <br />
       <input type="text" ref={ref} disabled={busy} />
-      <button disabled={busy} onclick={() => dispatch({ append: ref.current?.value ?? "" })}>
+      <button
+        disabled={busy}
+        onclick={() => dispatch({ append: ref.current?.value ?? "" })}
+      >
         Append
       </button>
     </div>
