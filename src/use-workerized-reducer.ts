@@ -28,51 +28,112 @@ export interface MutableRef<T> {
   current: T;
 }
 export type UseRef<T> = (initialValue: T) => MutableRef<T>;
+export type UseMemo<T> = (
+  factory: () => T,
+  inputs: ReadonlyArray<any> | undefined
+) => T;
+
+interface InitMessage<State, Action> {
+  __uwrType: "init";
+  name: string;
+  id: number;
+  initialState: State;
+}
+
+interface DispatchMessage<State, Action> {
+  __uwrType: "dispatch";
+  name: string;
+  id: number;
+  action: Action;
+}
+
+interface DestroyMessage<State, Action> {
+  __uwrType: "destroy";
+  name: string;
+}
+
+interface PatchMessage<State, Action> {
+  __uwrType: "patch";
+  id: number;
+  patches: Patch[];
+}
+
+type UWRMessage<State, Action> =
+  | InitMessage<State, Action>
+  | DispatchMessage<State, Action>
+  | DestroyMessage<State, Action>;
 
 export function initWorkerizedReducer<State, Action>(
   reducerName: string,
   reducer: Reducer<Draft<State>, Action>
 ) {
-  function send(id, value) {
-    postMessage({
-      name: reducerName,
+  const activeReducers = new Map<
+    String,
+    WritableStream<UWRMessage<State, Action>>
+  >();
+
+  function sendPatch(id: number, patches: Patch[]) {
+    const msg: PatchMessage<State, Action> = {
+      __uwrType: "patch",
       id,
-      value,
+      patches,
+    };
+    postMessage(msg);
+  }
+
+  function createMessageQueue() {
+    let state: State | null = null;
+    return new WritableStream<UWRMessage<State, Action>>({
+      async write(data, controller) {
+        switch (data.__uwrType) {
+          case "init":
+            {
+              const { id, initialState } = data;
+              state = await produce<State>(
+                {} as any,
+                (obj) => Object.assign(obj, initialState),
+                (patches) => sendPatch(id, patches)
+              );
+            }
+            break;
+          case "dispatch":
+            {
+              const { id, action } = data;
+              state = await produce<State>(
+                state,
+                async (state) => {
+                  await reducer(state, action);
+                },
+                (patches) => sendPatch(id, patches)
+              );
+            }
+            break;
+          case "destroy":
+            {
+              const { name } = data;
+              activeReducers.delete(name);
+              controller.error();
+            }
+            break;
+        }
+      },
     });
   }
 
-  let state: State | null = null;
-  const ws = new WritableStream({
-    async write(data, controller) {
-      if (typeof data !== "object") return;
-      const { name, id, payload } = data;
-      if (name != reducerName) return;
-
-      if ("set" in payload) {
-        state = await produce<State>(
-          {} as any,
-          (obj) => Object.assign(obj, payload.set),
-          (patches) => send(id, patches)
-        );
-        return;
-      }
-
-      state = await produce<State>(
-        state,
-        async (state) => {
-          await reducer(state, payload.action);
-        },
-        (patches) => send(id, patches)
-      );
-    },
-  });
-
-  function listener({ data }: MessageEvent) {
-    if ("abandon" in data?.payload) {
-      removeEventListener("message", listener);
-      ws.close();
-      return;
+  function listener(ev: MessageEvent) {
+    if (typeof ev.data !== "object" || !("__uwrType" in ev.data)) return;
+    const data = ev.data as UWRMessage<State, Action>;
+    if (data.__uwrType === "init") {
+      const { name } = data;
+      const [id, initReducerName] = JSON.parse(name) as [number, string];
+      if (initReducerName !== reducerName) return;
+      if (activeReducers.has(name)) return;
+      const ws = createMessageQueue();
+      activeReducers.set(name, ws);
     }
+    const { name } = data;
+    const ws = activeReducers.get(name);
+    if (!ws) return;
     const w = ws.getWriter();
     w.write(data);
     w.releaseLock();
@@ -86,45 +147,61 @@ function uid() {
   ).join("");
 }
 
+let idCounter = 0;
 export function useWorkerizedReducer<State, Action>(
   worker: Worker,
   reducerName: string,
   initialState: State,
   originalUseState: UseState<any>,
-  originalUseEffect: UseEffect
+  originalUseEffect: UseEffect,
+  originalUseMemo: UseMemo<number>
 ): [State | null, DispatchFunc<Action>, boolean] {
-  const [activeSet] = originalUseState(new Set());
+  const id = originalUseMemo(() => idCounter++, []);
+  const [pendingIds] = originalUseState(new Set());
   const [state, setState] = originalUseState(null);
   // Initially set to true until the initialState
   // has been applied in the worker.
   const [isBusy, setBusy] = originalUseState(true);
 
-  function send(payload) {
-    const id = uid();
-    activeSet.add(id);
-    setBusy(true);
-    worker.postMessage({ name: reducerName, id, payload });
+  function fullReducerName() {
+    return JSON.stringify([id, reducerName]);
   }
 
-  function dispatch(action) {
-    send({ action });
+  // FIXME: This type is not correct. It’s any of the UWRMessages,
+  // but without `id` or `name`. Couldn’t get it to work with `Omit` tho.
+  function send(payload: Partial<UWRMessage<State, Action>>) {
+    const id = uid();
+    pendingIds.add(id);
+    setBusy(true);
+    worker.postMessage({ name: fullReducerName(), id, ...payload });
+  }
+
+  function dispatch(action: Action) {
+    send({
+      __uwrType: "dispatch",
+      action,
+    });
   }
 
   originalUseEffect(() => {
-    function listener({ data }: MessageEvent) {
-      const { name, id, value } = data;
-      if (name != reducerName) return;
-      activeSet.delete(id);
-      if (activeSet.size === 0) setBusy(false);
+    function listener(ev: MessageEvent) {
+      if (typeof ev.data !== "object" || !("__uwrType" in ev.data)) return;
+      const data = ev.data as PatchMessage<State, Action>;
+      // For safety
+      if (data.__uwrType !== "patch") return;
+      const { id, patches } = data;
+      if (!pendingIds.has(id)) return;
+      pendingIds.delete(id);
+      if (pendingIds.size === 0) setBusy(false);
       setState((state) => {
-        return applyPatches(state ?? {}, value);
+        return applyPatches(state ?? {}, patches);
       });
     }
     worker.addEventListener("message", listener);
-    send({ set: initialState });
+    send({ __uwrType: "init", initialState });
     () => {
       worker.removeEventListener("message", listener);
-      send({ abandon: true });
+      send({ __uwrType: "destroy" });
     };
   }, []);
 

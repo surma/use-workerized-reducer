@@ -1,5 +1,5 @@
 // @ts-ignore
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useMemo } from "preact/hooks";
 import { useWorkerizedReducer as genericUseWorkerizedReducer } from "./use-workerized-reducer.js";
 
 export { initWorkerizedReducer } from "./use-workerized-reducer.js";
@@ -14,6 +14,7 @@ export function useWorkerizedReducer<State, Action>(
     reducerName,
     initialState,
     useState,
-    useEffect
+    useEffect,
+    useMemo
   );
 }
