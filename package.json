@@ -1,6 +1,6 @@
 {
   "name": "use-workerized-reducer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "scripts": {
     "build:generic": "vite build -c vite.config.generic.js",
@@ -29,14 +29,14 @@
   },
   "module": "dist/generic/use-workerized-reducer.es.js",
   "exports": {
-		".": {
-			"import": "./dist/generic/use-workerized-reducer.es.js"
-		},
-		"./react": {
-			"import": "./dist/react/use-workerized-reducer.es.js"
-		},
-		"./preact": {
-			"import": "./dist/preact/use-workerized-reducer.es.js"
-		}
+    ".": {
+      "import": "./dist/generic/use-workerized-reducer.es.js"
+    },
+    "./react": {
+      "import": "./dist/react/use-workerized-reducer.es.js"
+    },
+    "./preact": {
+      "import": "./dist/preact/use-workerized-reducer.es.js"
+    }
   }
 }
