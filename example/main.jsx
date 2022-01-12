@@ -16,8 +16,9 @@ function Counter() {
 
   return (
     <div>
+      <button disabled={busy} onclick={() => dispatch({ type: "decrement" })}>-</button>
       <span>{state?.counter}</span>
-      <button disabled={busy} onclick={() => dispatch({ inc: 1 })}>Increase</button>
+      <button disabled={busy} onclick={() => dispatch({ type: "increment" })}>+</button>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 `useWorkerizedReducer` is like `useReducer`, but the reducer runs in a worker. This makes it possible to place long-running computations in the reducer without affecting the responsiveness of the app.
 
-Powered by [ImmerJS]
+Powered by [ImmerJS].
 
 ### Usage
 
@@ -12,17 +12,23 @@ import { initWorkerizedReducer } from "use-workerized-reducer";
 
 initWorkerizedReducer(
   "counter", // Name of the reducer
-  async (state, action) => {
-    await sleep(1000); // Async reducers are supported
-    state.counter += action.inc;
-  },
-  { counter: 0 }
+  (state, action) => {
+    switch (action.type) {
+      case "increment":
+        state.counter += 1;
+        break;
+      case "decrement":
+        state.counter -= 1;
+        break;
+      default:
+        throw new Error();
+    }
+  }
 );
 
 // main.js
-import { render, h } from "preact";
-import { useState, useEffect } from "preact/hooks";
-import { useWorkerizedReducer } from "use-workerized-reducer";
+import { render, h, Fragment } from "preact";
+import { useWorkerizedReducer } from "use-workerized-reducer/preact";
 
 // Spin up the worker running the reducers
 const worker = new Worker(new URL("./worker.js", import.meta.url), {
@@ -30,29 +36,33 @@ const worker = new Worker(new URL("./worker.js", import.meta.url), {
 });
 
 function App() {
-  // Address reducer by name.
+  // A worker can contain multiple reducers, each with a unique name.
   // `busy` is true if any action is still being processed.
-  // `useState` and `useEffect` need to be passed in, so that this library
-  // can be used with preact and React alike.
   const [state, dispatch, busy] = useWorkerizedReducer(
     worker,
-    "counter",
-    useState,
-    useEffect
+    "counter", // Reducer name
+    { counter: 0 } // Initial state
   );
 
   return (
-    <div>
-      <div>{state?.counter}</div>
-      <button onclick={() => dispatch({ inc: 1 })}>Increment</button>
-    </div>
+    <>
+      Count: {state?.count ?? "?"}
+      <button disabled={busy} onclick={() => dispatch({ type: "decrement" })}>
+        -
+      </button>
+      <button disabled={busy} onclick={() => dispatch({ type: "increment" })}>
+        +
+      </button>
+    </>
   );
 }
 ```
 
-`userWorkerizedReducer` uses [ImmerJS]’s `produce()` and `applyPatches()` under the hood, so that `Object.is` can be used to debounce rendering (i.e. objects tha weren’t changed in the worker won’t be changed on the main thread). A reducer has to completely finish (that means the promise has to resolve in the case of an async reducer) before the next action is processed.
+`userWorkerizedReducer` uses [ImmerJS]’s `produce()` and `applyPatches()` under the hood. This means that only patches are transferred between worker and main thread. Additionally, object identity is maintained as immutable data structures require. A reducer has to completely finish before the next action is processed.
 
----
+### API
+
+## TBD
 
 Apache-2.0
 
