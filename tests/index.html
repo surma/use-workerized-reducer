@@ -9,7 +9,12 @@
 <main id="results"></main>
 <iframe id="iframe"></iframe>
 <script type="module">
-  const TESTS = ["basic/index", "instant-dispatch/index", "remount/index"];
+  const TESTS = [
+    "basic/index",
+    "instant-dispatch/index",
+    "remount/index",
+    "multi-component/index",
+  ];
 
   const { results, iframe } = document.all;
   const messageStream = new ReadableStream({

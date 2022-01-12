@@ -12,11 +12,12 @@
  */
 
 export function externalPromise() {
-  let resolve;
-  const promise = new Promise((resolve_) => {
+  let resolve, reject;
+  const promise = new Promise((resolve_, reject_) => {
     resolve = resolve_;
+    reject = reject_;
   });
-  return [promise, resolve];
+  return [promise, resolve, reject];
 }
 
 export function doubleRaf() {

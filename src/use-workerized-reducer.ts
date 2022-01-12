@@ -43,15 +43,15 @@ export function initWorkerizedReducer<State, Action>(
 
   let state: State | null = null;
   const ws = new WritableStream({
-    async write(data) {
-      const { name, id, action } = data;
+    async write(data, controller) {
+      if (typeof data !== "object") return;
+      const { name, id, payload } = data;
       if (name != reducerName) return;
 
-      // If state is null, the first message will be the initialState.
-      if (state === null) {
+      if ("set" in payload) {
         state = await produce<State>(
           {} as any,
-          (obj) => Object.assign(obj, action),
+          (obj) => Object.assign(obj, payload.set),
           (patches) => send(id, patches)
         );
         return;
@@ -60,18 +60,24 @@ export function initWorkerizedReducer<State, Action>(
       state = await produce<State>(
         state,
         async (state) => {
-          await reducer(state, action);
+          await reducer(state, payload.action);
         },
         (patches) => send(id, patches)
       );
     },
   });
 
-  addEventListener("message", async ({ data }: MessageEvent) => {
+  function listener({ data }: MessageEvent) {
+    if ("abandon" in data?.payload) {
+      removeEventListener("message", listener);
+      ws.close();
+      return;
+    }
     const w = ws.getWriter();
     w.write(data);
     w.releaseLock();
-  });
+  }
+  addEventListener("message", listener);
 }
 
 function uid() {
@@ -93,11 +99,15 @@ export function useWorkerizedReducer<State, Action>(
   // has been applied in the worker.
   const [isBusy, setBusy] = originalUseState(true);
 
-  function dispatch(action) {
+  function send(payload) {
     const id = uid();
     activeSet.add(id);
     setBusy(true);
-    worker.postMessage({ name: reducerName, id, action });
+    worker.postMessage({ name: reducerName, id, payload });
+  }
+
+  function dispatch(action) {
+    send({ action });
   }
 
   originalUseEffect(() => {
@@ -111,8 +121,11 @@ export function useWorkerizedReducer<State, Action>(
       });
     }
     worker.addEventListener("message", listener);
-    dispatch(initialState);
-    () => worker.removeEventListener("message", listener);
+    send({ set: initialState });
+    () => {
+      worker.removeEventListener("message", listener);
+      send({ abandon: true });
+    };
   }, []);
 
   return [state, dispatch, isBusy];
