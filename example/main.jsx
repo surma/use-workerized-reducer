@@ -1,7 +1,7 @@
 /* @jsx h */
 import { render, h } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
-import { useWorkerizedReducer } from "../src/use-workerized-reducer.ts";
+import { useRef } from "preact/hooks";
+import { useWorkerizedReducer } from "../src/use-workerized-reducer.preact.ts";
 
 const w = new Worker(new URL("./worker.js", import.meta.url), {
   type: "module",
@@ -11,9 +11,7 @@ function Counter() {
   const [state, dispatch, busy] = useWorkerizedReducer(
     w,
     "counter",
-		{ counter: 0 },
-    useState,
-    useEffect
+		{ counter: 0 }
   );
 
   return (
@@ -28,9 +26,7 @@ function Name() {
   const [state, dispatch, busy] = useWorkerizedReducer(
     w,
     "name",
-		{ name: "Test" },
-    useState,
-    useEffect
+		{ name: "Test" }
   );
   const ref = useRef(null);
 

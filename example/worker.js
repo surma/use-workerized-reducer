@@ -1,4 +1,4 @@
-import { initWorkerizedReducer } from "../src/use-workerized-reducer.ts";
+import { initWorkerizedReducer } from "../src/use-workerized-reducer.preact.ts";
 
 initWorkerizedReducer("counter", (state, { inc }) => {
   state.counter += inc;
