@@ -88,31 +88,24 @@ The returned state will be `null` until the `initialState` has been transferred 
 
 In contrast to the reducer functions from the vanilla `useReducer` hook, it is important to manipulate the `state` object directly. ImmerJS is recording the operations performend on the object to generate a patch set. Creating copies of the object will not yield the desired effect.
 
-#### React
+### Convenience exports
+
+For React:
 
 ```js
-import {
-  useWorkerizedReducer,
-  initWorkerizedReducer,
-} from "use-workerized-reducer/react";
+import { ... } from "use-workerized-reducer/react";
 ```
 
-#### Preact
+For Preact:
 
 ```js
-import {
-  useWorkerizedReducer,
-  initWorkerizedReducer,
-} from "use-workerized-reducer/preact";
+import { ... } from "use-workerized-reducer/preact";
 ```
 
-#### Generic
+If, for some reason, you don’t want to use either of those, you can use the generic export. Note that `useWorkerizedReducer` takes 3 extra parameters, which have to be the `useState`, `useEffect` and `useMemo` hook in that order.
 
 ```js
-import {
-  useWorkerizedReducer,
-  initWorkerizedReducer,
-} from "use-workerized-reducer";
+import { ... } from "use-workerized-reducer";
 ```
 
 ---
