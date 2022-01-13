@@ -1,6 +1,6 @@
 {
   "name": "use-workerized-reducer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "scripts": {
     "build:generic": "vite build -c vite.config.generic.js",
