@@ -8,15 +8,16 @@
 
 ### Example
 
-```js
+```jsx
 // worker.js
 import { initWorkerizedReducer } from "use-workerized-reducer";
 
 initWorkerizedReducer(
   "counter", // Name of the reducer
-  (state, action) => {
-    // Manipulate `state` directly. ImmerJS will take care of maintaining
-    // referential equality.
+  async (state, action) => {
+    // Reducers can be async!
+    // Manipulate `state` directly. ImmerJS will take
+    // care of maintaining referential equality.
     switch (action.type) {
       case "increment":
         state.counter += 1;
@@ -34,7 +35,7 @@ initWorkerizedReducer(
 import { render, h, Fragment } from "preact";
 import { useWorkerizedReducer } from "use-workerized-reducer/preact";
 
-// Spin up the worker running the reducers
+// Spin up the worker running the reducers.
 const worker = new Worker(new URL("./worker.js", import.meta.url), {
   type: "module",
 });
@@ -50,7 +51,7 @@ function App() {
 
   return (
     <>
-      Count: {state?.count ?? "?"}
+      Count: {state.counter}
       <button disabled={busy} onclick={() => dispatch({ type: "decrement" })}>
         -
       </button>
@@ -60,6 +61,8 @@ function App() {
     </>
   );
 }
+
+render(<App />, document.querySelector("main"));
 ```
 
 ### Browser Support
