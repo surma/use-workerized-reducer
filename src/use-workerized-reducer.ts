@@ -64,7 +64,7 @@ type UWRMessage<State, Action> =
   | DispatchMessage<State, Action>
   | DestroyMessage<State, Action>;
 
-type DistributiveOmit<T, F extends string | number | symbol> = T extends infer T ? Omit<T, F> : never;
+type DistributiveOmit<T, F extends string | number | symbol> = T extends infer R ? Omit<R, F> : never;
 
 export function initWorkerizedReducer<State, Action, LocalState = {}>(
   reducerName: string,
