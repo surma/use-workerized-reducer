@@ -59,6 +59,8 @@ interface PatchMessage<State, Action> {
   patches: Patch[];
 }
 
+type OmitUnion<T, F extends string | number | symbol> = T extends any ? Omit<T, F> : never;
+
 type UWRMessage<State, Action> =
   | InitMessage<State, Action>
   | DispatchMessage<State, Action>
@@ -168,9 +170,7 @@ export function useWorkerizedReducer<State, Action>(
     return JSON.stringify([id, reducerName]);
   }
 
-  // FIXME: This type is not correct. It’s any of the UWRMessages,
-  // but without `id` or `name`. Couldn’t get it to work with `Omit` tho.
-  function send(payload: Partial<UWRMessage<State, Action>>) {
+  function send(payload: OmitUnion<UWRMessage<State, Action>, 'id' | 'name'>) {
     const id = uid();
     pendingIds.add(id);
     setBusy(true);
