@@ -59,12 +59,12 @@ interface PatchMessage<State, Action> {
   patches: Patch[];
 }
 
-type OmitUnion<T, F extends string | number | symbol> = T extends any ? Omit<T, F> : never;
-
 type UWRMessage<State, Action> =
   | InitMessage<State, Action>
   | DispatchMessage<State, Action>
   | DestroyMessage<State, Action>;
+
+type DistributiveOmit<T, F extends string | number | symbol> = T extends infer T ? Omit<T, F> : never;
 
 export function initWorkerizedReducer<State, Action, LocalState = {}>(
   reducerName: string,
@@ -170,7 +170,7 @@ export function useWorkerizedReducer<State, Action>(
     return JSON.stringify([id, reducerName]);
   }
 
-  function send(payload: OmitUnion<UWRMessage<State, Action>, 'id' | 'name'>) {
+  function send(payload: DistributiveOmit<UWRMessage<State, Action>, 'id' | 'name'>) {
     const id = uid();
     pendingIds.add(id);
     setBusy(true);
