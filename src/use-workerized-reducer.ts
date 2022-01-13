@@ -9,9 +9,10 @@ import {
 enablePatches();
 enableMapSet();
 
-export type Reducer<State, Action> = (
+export type Reducer<State, Action, LocalState = {}> = (
   prevState: State,
-  action: Action
+  action: Action,
+  localState: LocalState
 ) => State;
 export type DispatchFunc<Action> = (a: Action) => void;
 export type UseReducer<State, Action> = (
@@ -63,9 +64,10 @@ type UWRMessage<State, Action> =
   | DispatchMessage<State, Action>
   | DestroyMessage<State, Action>;
 
-export function initWorkerizedReducer<State, Action>(
+export function initWorkerizedReducer<State, Action, LocalState = {}>(
   reducerName: string,
-  reducer: Reducer<Draft<State>, Action>
+  reducer: Reducer<Draft<State>, Action>,
+  initialLocalState: (initialState: State) => LocalState = () => ({} as any)
 ) {
   const activeReducers = new Map<
     String,
@@ -82,6 +84,7 @@ export function initWorkerizedReducer<State, Action>(
   }
 
   function createMessageQueue() {
+    let localState: LocalState;
     let state: State | null = null;
     return new WritableStream<UWRMessage<State, Action>>({
       async write(data, controller) {
@@ -94,6 +97,7 @@ export function initWorkerizedReducer<State, Action>(
                 (obj) => Object.assign(obj, initialState),
                 (patches) => sendPatch(id, patches)
               );
+              localState = initialLocalState(state);
             }
             break;
           case "dispatch":
@@ -102,7 +106,7 @@ export function initWorkerizedReducer<State, Action>(
               state = await produce<State>(
                 state,
                 async (state) => {
-                  await reducer(state, action);
+                  await reducer(state, action, localState);
                 },
                 (patches) => sendPatch(id, patches)
               );

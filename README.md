@@ -82,11 +82,13 @@ If a reducer is still running, the `busy` variable returned by `useWorkerizedRed
 
 ##### `useWorkerizedReducer(worker, name, initialState): [State | null, DispatchFunc, isBusy];`
 
-The returned state will be `null` until the `initialState` has been transferred to the worker and applied. `isBusy` will also be `true` until that has happened.
+`isBusy` will be `true` until the `initialState` has been successfully replicated to the worker. Afterwards, `isBusy` is true when there actions still being processed, `false` otherwise.
 
-##### `initWorkerizedReducer(name, reducerFunc);`
+##### `initWorkerizedReducer(name, reducerFunc, localState?);`
 
-In contrast to the reducer functions from the vanilla `useReducer` hook, it is important to manipulate the `state` object directly. ImmerJS is recording the operations performend on the object to generate a patch set. Creating copies of the object will not yield the desired effect.
+`name` is the name of the reducer, which has to be identical to the `name` passed into `useWorkerizedReducer`. `reducerFunc` is a function of type `(state, action, localState) => void | Promise<void>`. It behaves the same as the reducer function you pass to the vanilla `useReducer` hook. In contrast to the reducer functions from the vanilla `useReducer` hook, it is important to manipulate the `state` object directly. ImmerJS is recording the operations performend on the object to generate a patch set. Creating copies of the object will not yield the desired effect. Since the modifications to `state` have to be transferred back to the main thread, the state object can only hold [structured cloneable values].
+
+`localState` is optional, and is a function of type `(initialState) => LocalState`. It will be called when a new reducer is being created and is expected to return a new local state instance. Local state will not be transferred to the main thread and therefore can hold references to values that are _not_ structured cloneable, like functions or errors.
 
 ### Convenience exports
 
@@ -116,3 +118,4 @@ Apache-2.0
 [web-streams-polyfill]: https://www.npmjs.com/package/web-streams-polyfill
 [react]: https://reactjs.org/
 [preact]: https://preactjs.com/
+[structured cloneable values]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm#supported_types
