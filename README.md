@@ -80,7 +80,7 @@ If a reducer is still running, the `busy` variable returned by `useWorkerizedRed
 
 #### Exported methods
 
-##### `useWorkerizedReducer(worker, name, initialState): [State | null, DispatchFunc, isBusy];`
+##### `useWorkerizedReducer(worker, name, initialState): [State, DispatchFunc, isBusy];`
 
 `isBusy` will be `true` until the `initialState` has been successfully replicated to the worker. Afterwards, `isBusy` is true when there actions still being processed, `false` otherwise.
 

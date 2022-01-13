@@ -92,12 +92,9 @@ export function initWorkerizedReducer<State, Action, LocalState = {}>(
           case "init":
             {
               const { id, initialState } = data;
-              state = await produce<State>(
-                {} as any,
-                (obj) => Object.assign(obj, initialState),
-                (patches) => sendPatch(id, patches)
-              );
+              state = initialState;
               localState = initialLocalState(state);
+              sendPatch(id, []);
             }
             break;
           case "dispatch":
@@ -162,7 +159,7 @@ export function useWorkerizedReducer<State, Action>(
 ): [State | null, DispatchFunc<Action>, boolean] {
   const id = originalUseMemo(() => idCounter++, []);
   const [pendingIds] = originalUseState(new Set());
-  const [state, setState] = originalUseState(null);
+  const [state, setState] = originalUseState(initialState);
   // Initially set to true until the initialState
   // has been applied in the worker.
   const [isBusy, setBusy] = originalUseState(true);
@@ -180,7 +177,7 @@ export function useWorkerizedReducer<State, Action>(
     worker.postMessage({ name: fullReducerName(), id, ...payload });
   }
 
-  function dispatch(action: Action) {
+  async function dispatch(action: Action) {
     send({
       __uwrType: "dispatch",
       action,
@@ -198,7 +195,7 @@ export function useWorkerizedReducer<State, Action>(
       pendingIds.delete(id);
       if (pendingIds.size === 0) setBusy(false);
       setState((state) => {
-        return applyPatches(state ?? {}, patches);
+        return applyPatches(state, patches);
       });
     }
     worker.addEventListener("message", listener);

@@ -1,6 +1,7 @@
 /* @jsx h */
 
 import { h, render } from "preact";
+import { useEffect } from "preact/hooks";
 import { testSuite, externalPromise } from "/tests/test-utils.js";
 import { useWorkerizedReducer } from "/dist/preact/use-workerized-reducer.es.js";
 
@@ -15,8 +16,10 @@ testSuite("Basic reducer functionality", async () => {
       counter: 0,
     });
 
-    if (state?.counter === 0) dispatch({ type: "increment" });
-    if (state?.counter === 1) resolve();
+    useEffect(() => {
+      if (state.counter === 0) dispatch({ type: "increment" });
+      if (state.counter === 1) resolve();
+    }, [state]);
 
     return <pre>{JSON.stringify(state, null, "  ")}</pre>;
   }
