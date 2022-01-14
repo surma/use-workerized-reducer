@@ -16,13 +16,13 @@
   "devDependencies": {
     "husky": "^7.0.4",
     "lint-staged": "^12.1.7",
+    "npm-run-all": "^4.1.5",
     "preact": "^10.6.4",
-    "prettier": "^2.5.1"
+    "prettier": "^2.5.1",
+    "vite": "^2.8.0-beta.1"
   },
   "dependencies": {
-    "immer": "^9.0.12",
-    "npm-run-all": "^4.1.5",
-    "vite": "^2.8.0-beta.1"
+    "immer": "^9.0.12"
   },
   "lint-staged": {
     "*.{js,css,md}": "prettier --write"
