@@ -200,7 +200,7 @@ export function useWorkerizedReducer<State, Action>(
     }
     worker.addEventListener("message", listener);
     send({ __uwrType: "init", initialState });
-    () => {
+    return () => {
       worker.removeEventListener("message", listener);
       send({ __uwrType: "destroy" });
     };
