@@ -64,6 +64,8 @@ type UWRMessage<State, Action> =
   | DispatchMessage<State, Action>
   | DestroyMessage<State, Action>;
 
+type DistributiveOmit<T, F extends string | number | symbol> = T extends infer R ? Omit<R, F> : never;
+
 export function initWorkerizedReducer<State, Action, LocalState = {}>(
   reducerName: string,
   reducer: Reducer<Draft<State>, Action>,
@@ -168,9 +170,7 @@ export function useWorkerizedReducer<State, Action>(
     return JSON.stringify([id, reducerName]);
   }
 
-  // FIXME: This type is not correct. It’s any of the UWRMessages,
-  // but without `id` or `name`. Couldn’t get it to work with `Omit` tho.
-  function send(payload: Partial<UWRMessage<State, Action>>) {
+  function send(payload: DistributiveOmit<UWRMessage<State, Action>, 'id' | 'name'>) {
     const id = uid();
     pendingIds.add(id);
     setBusy(true);
